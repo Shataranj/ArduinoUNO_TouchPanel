@@ -3,11 +3,11 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 
-
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
 BLECharacteristic *pCharacteristic;
+BLEServer *pServer;
 
 const byte ROWS = 8; //four rows
 const byte COLS = 8; //three columns
@@ -38,40 +38,67 @@ Keypad kpd = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 unsigned long loopCount;
 unsigned long startTime;
-String msg;
+String move;
+int numberOfKeyPresses;
 void startBLE();
 
 void setup()
 {
   Serial.begin(9600);
+  numberOfKeyPresses = 0;
+  move = "";
   startBLE();
 }
 
 void loop()
 {
-  char key = kpd.getKey();
-  if (key != NO_KEY)
+  // char key = kpd.getKey();
+  // if (key != NO_KEY)
+  // {
+  //   int index = (int)key;
+  //   String cell = cells[index - 1];
+  //   pCharacteristic->setValue(cell.c_str());
+  //   pCharacteristic->notify();
+  //   Serial.println(cell);
+  // }
+
+  if (Serial.available() > 0)
   {
-    int index = (int)key;
-    String cell = cells[index - 1];
-    pCharacteristic->setValue(cell.c_str());
-    pCharacteristic->notify();
-    Serial.println(cell);
+    String input = Serial.readStringUntil('\n');
+    if (numberOfKeyPresses < 2)
+    {
+      move = move + input;
+      numberOfKeyPresses++;
+    }
+
+    if (numberOfKeyPresses == 2)
+    {
+      Serial.print("SENDING:");
+      Serial.println(move);
+      pCharacteristic->setValue(move.c_str());
+      pCharacteristic->notify();
+      move = "";
+      numberOfKeyPresses = 0;
+    }
   }
+
+  // if(pServer->getConnectedCount() == 0){
+  //   BLEDevice::startAdvertising();
+  // }
 }
 
-void startBLE(){
+void startBLE()
+{
   Serial.println("Starting BLE work!");
 
   BLEDevice::init("Rolling Pawn");
-  BLEServer *pServer = BLEDevice::createServer();
+  pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
   pCharacteristic = pService->createCharacteristic(
-                                         CHARACTERISTIC_UUID,
-                                         BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE|
-                                         BLECharacteristic::PROPERTY_NOTIFY
-                                       );
+      CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ |
+          BLECharacteristic::PROPERTY_WRITE |
+          BLECharacteristic::PROPERTY_NOTIFY);
 
   pCharacteristic->setValue("Hello World says Neil");
   pService->start();
@@ -79,7 +106,7 @@ void startBLE(){
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x06); // functions that help with iPhone connections issue
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
   Serial.println("Characteristic defined! Now you can read it in your phone!");
