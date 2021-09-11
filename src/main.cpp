@@ -31,7 +31,7 @@ String cells[64] = {"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
                     "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
                     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"};
 
-byte rowPins[ROWS] = {13, 14, 27, 26, 12, 32, 33, 25}; //connect to the row pinouts of the kpd
+byte rowPins[ROWS] = {32, 33, 25, 26, 27, 14, 12, 13}; //connect to the row pinouts of the kpd
 byte colPins[COLS] = {23, 22, 21, 19, 18, 17, 16, 15}; //connect to the column pinouts of the kpd
 
 Keypad kpd = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
@@ -52,22 +52,18 @@ void setup()
 
 void loop()
 {
-  // char key = kpd.getKey();
-  // if (key != NO_KEY)
-  // {
-  //   int index = (int)key;
-  //   String cell = cells[index - 1];
-  //   pCharacteristic->setValue(cell.c_str());
-  //   pCharacteristic->notify();
-  //   Serial.println(cell);
-  // }
-
-  if (Serial.available() > 0)
+  char key = kpd.getKey();
+  if (key != NO_KEY)
   {
-    String input = Serial.readStringUntil('\n');
-    if (numberOfKeyPresses < 2)
+    int index = (int)key;
+    String cell = cells[index - 1];
+    Serial.println(move);
+    Serial.println(cell);
+    Serial.println(move != cell);
+
+    if (numberOfKeyPresses < 2 && move != cell)
     {
-      move = move + input;
+      move = move + cell;
       numberOfKeyPresses++;
     }
 
@@ -79,8 +75,29 @@ void loop()
       pCharacteristic->notify();
       move = "";
       numberOfKeyPresses = 0;
+      Serial.flush();
     }
-  }
+    }
+
+  // if (Serial.available() > 0)
+  // {
+  //   String input = Serial.readStringUntil('\n');
+  //   if (numberOfKeyPresses < 2)
+  //   {
+  //     move = move + input;
+  //     numberOfKeyPresses++;
+  //   }
+
+  //   if (numberOfKeyPresses == 2)
+  //   {
+  //     Serial.print("SENDING:");
+  //     Serial.println(move);
+  //     pCharacteristic->setValue(move.c_str());
+  //     pCharacteristic->notify();
+  //     move = "";
+  //     numberOfKeyPresses = 0;
+  //   }
+  // }
 
   // if(pServer->getConnectedCount() == 0){
   //   BLEDevice::startAdvertising();
